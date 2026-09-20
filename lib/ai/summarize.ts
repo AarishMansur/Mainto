@@ -18,6 +18,8 @@ export interface IssueToSummarize {
   body: string | null;
   labels: string[];
   commentsCount: number;
+  repoOwner?: string;
+  repoName?: string;
 }
 
 export async function summarizeIssue(

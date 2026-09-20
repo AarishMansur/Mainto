@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Roboto } from "next/font/google";
+import { draftMode } from "next/headers";
+import { VisualEditing } from "next-sanity/visual-editing";
+import { SanityLive } from "@/sanity/lib/live";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,10 +20,16 @@ export const metadata: Metadata = {
   description: "AI powered issue triage for open source maintainers",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { isEnabled: isDraftMode } = await draftMode();
+
   return (
     <html lang="en" className={`${inter.variable} ${roboto.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        {children}
+        <SanityLive />
+        {isDraftMode && <VisualEditing />}
+      </body>
     </html>
   );
 }
