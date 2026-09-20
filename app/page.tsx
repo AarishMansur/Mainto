@@ -29,13 +29,13 @@ export default function LandingPage() {
           style={{ backgroundImage: "url('/hero-image.png')" }}
         />
 
-        <nav className={`fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center justify-center rounded-full bg-white/90 backdrop-blur-md transition-all duration-500 ease-out ${scrolled ? "w-[88%] max-w-lg gap-3 px-4 py-2 md:w-[68%]" : "w-[88%] max-w-2xl gap-8 px-5 py-3 md:w-[78%]"}`}>
+        <nav className={`fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center justify-center rounded-full bg-white/90 backdrop-blur-md transition-[width,gap,padding] duration-500 ease-out ${scrolled ? "w-[calc(100%-3rem)] gap-2 px-3 py-1.5 md:w-[52%]" : "w-[calc(100%-2rem)] gap-5 px-4 py-2.5 md:w-[60%]"}`}>
         <Link href="#top" onClick={(event) => scrollToSection(event, "top")} className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Maintainer Copilot home" className={`h-12 w-12 rounded-lg object-contain transition-all duration-300 ${scrolled ? "h-9 w-9" : ""}`} />
-          <span className={`font-bold tracking-tight text-black transition-all duration-300 ${scrolled ? "text-sm" : "text-lg"}`}>Maintainer Copilot</span>
+          <img src="/logo.png" alt="Maintainer Copilot home" className="h-12 w-12 rounded-lg object-contain" />
+          <span className="text-lg font-bold tracking-tight text-black">Maintainer Copilot</span>
         </Link>
 
-        <div className={`hidden items-center text-sm font-medium text-black transition-all duration-300 md:flex ${scrolled ? "gap-3 text-xs" : "gap-6"}`}>
+        <div className={`hidden items-center text-sm font-medium text-black transition-[gap] duration-500 md:flex ${scrolled ? "gap-3" : "gap-6"}`}>
           <a href="#features" onClick={(event) => scrollToSection(event, "features")} className="hover:opacity-70 transition-opacity">Features</a>
           <a href="#how-it-works" onClick={(event) => scrollToSection(event, "how-it-works")} className="hover:opacity-70 transition-opacity">How It Works</a>
           <a href="#pricing" onClick={(event) => scrollToSection(event, "pricing")} className="hover:opacity-70 transition-opacity">Pricing</a>
@@ -43,7 +43,7 @@ export default function LandingPage() {
 
         <Link
           href="/app"
-          className={`rounded-full bg-black font-medium text-white transition-all duration-300 hover:bg-zinc-800 ${scrolled ? "px-4 py-1.5 text-xs" : "px-5 py-2 text-sm"}`}
+          className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white transition-colors duration-300 hover:bg-zinc-800"
         >
           Open App
         </Link>

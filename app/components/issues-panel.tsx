@@ -21,10 +21,10 @@ export function IssuesPanel({ issues, summaries, summarizingAll, loadingIssueId,
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-sm text-zinc-500">{issues.length} open issues{summaries.size > 0 && ` · ${summaries.size} summarized`}</p>
-        <button onClick={onSummarizeAll} disabled={summarizingAll} className="px-4 py-1.5 text-xs font-medium rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        <button onClick={onSummarizeAll} disabled={summarizingAll} className="rounded-lg border border-zinc-200 bg-white px-4 py-1.5 text-xs font-medium text-zinc-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-zinc-300 disabled:cursor-not-allowed disabled:opacity-50">
           {summarizingAll ? "Summarizing all..." : "Summarize All"}
         </button>
       </div>

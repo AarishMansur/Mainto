@@ -37,16 +37,16 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const currentProvider = PROVIDER_OPTIONS.find((p) => p.value === provider);
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-zinc-100 mb-4">Settings</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}>
+        <h2 className="mb-4 text-lg font-semibold text-zinc-900">Settings</h2>
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-zinc-400">
+          <label className="block text-sm font-medium text-zinc-700">
             AI Provider
             <select
               value={provider}
               onChange={(event) => setProvider(event.target.value as Provider)}
-              className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100"
+              className="mt-1 w-full rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
             >
               {PROVIDER_OPTIONS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -55,7 +55,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               ))}
             </select>
             {currentProvider && (
-              <span className="block text-xs text-zinc-600 mt-1">
+                <span className="mt-1 block text-xs text-zinc-500">
                 Model: {currentProvider.model}
               </span>
             )}
@@ -83,11 +83,11 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             help="For higher rate limits (5000 req/hr vs 60)"
           />
         </div>
-        <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200">
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-zinc-500 transition-colors hover:text-zinc-900">
             Cancel
           </button>
-          <button onClick={save} className="px-4 py-2 text-sm font-medium rounded bg-zinc-100 text-zinc-900 hover:bg-zinc-200">
+          <button onClick={save} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black">
             Save
           </button>
         </div>
@@ -110,16 +110,16 @@ function SettingsInput({
   help: string;
 }) {
   return (
-    <label className="block text-sm font-medium text-zinc-400">
+    <label className="block text-sm font-medium text-zinc-700">
       {label}
       <input
         type="password"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
+        className="mt-1 w-full rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-400"
       />
-      <span className="block text-xs text-zinc-600 mt-1">{help}</span>
+      <span className="mt-1 block text-xs text-zinc-500">{help}</span>
     </label>
   );
 }
