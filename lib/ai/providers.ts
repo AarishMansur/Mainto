@@ -1,17 +1,74 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
+import { createMistral } from "@ai-sdk/mistral";
+import { createDeepSeek } from "@ai-sdk/deepseek";
+import { createXai } from "@ai-sdk/xai";
+import { createTogetherAI } from "@ai-sdk/togetherai";
+import { createCohere } from "@ai-sdk/cohere";
+import { createFireworks } from "@ai-sdk/fireworks";
 
-export type Provider = "anthropic" | "openai" | "google";
+export type Provider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "groq"
+  | "mistral"
+  | "deepseek"
+  | "xai"
+  | "togetherai"
+  | "cohere"
+  | "fireworks";
+
+export const PROVIDER_LABELS: Record<Provider, string> = {
+  anthropic: "Anthropic (Claude)",
+  openai: "OpenAI (GPT-4o)",
+  google: "Google (Gemini)",
+  groq: "Groq (Llama/Mixtral)",
+  mistral: "Mistral",
+  deepseek: "DeepSeek",
+  xai: "xAI (Grok)",
+  togetherai: "Together AI",
+  cohere: "Cohere",
+  fireworks: "Fireworks",
+};
+
+export const PROVIDER_MODELS: Record<Provider, string> = {
+  anthropic: "claude-sonnet-4-20250514",
+  openai: "gpt-4o",
+  google: "gemini-2.0-flash",
+  groq: "llama-3.3-70b-versatile",
+  mistral: "mistral-large-latest",
+  deepseek: "deepseek-chat",
+  xai: "grok-3",
+  togetherai: "meta-llama/Llama-3-70b-chat-hf",
+  cohere: "command-r-plus",
+  fireworks: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+};
 
 export function getModel(provider: Provider, apiKey: string) {
   switch (provider) {
     case "anthropic":
-      return createAnthropic({ apiKey })("claude-sonnet-4-20250514");
+      return createAnthropic({ apiKey })(PROVIDER_MODELS.anthropic);
     case "openai":
-      return createOpenAI({ apiKey })("gpt-4o");
+      return createOpenAI({ apiKey })(PROVIDER_MODELS.openai);
     case "google":
-      return createGoogleGenerativeAI({ apiKey })("gemini-2.0-flash");
+      return createGoogleGenerativeAI({ apiKey })(PROVIDER_MODELS.google);
+    case "groq":
+      return createGroq({ apiKey })(PROVIDER_MODELS.groq);
+    case "mistral":
+      return createMistral({ apiKey })(PROVIDER_MODELS.mistral);
+    case "deepseek":
+      return createDeepSeek({ apiKey })(PROVIDER_MODELS.deepseek);
+    case "xai":
+      return createXai({ apiKey })(PROVIDER_MODELS.xai);
+    case "togetherai":
+      return createTogetherAI({ apiKey })(PROVIDER_MODELS.togetherai);
+    case "cohere":
+      return createCohere({ apiKey })(PROVIDER_MODELS.cohere);
+    case "fireworks":
+      return createFireworks({ apiKey })(PROVIDER_MODELS.fireworks);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
