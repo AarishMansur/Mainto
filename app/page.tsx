@@ -1,43 +1,98 @@
 "use client";
 
-import { useState } from "react";
-import { IssuesPanel } from "./components/issues-panel";
-import { RepositorySearch } from "./components/repository-search";
-import { SettingsModal } from "./components/settings-modal";
-import { useMaintainerCopilot } from "./hooks/use-maintainer-copilot";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { FeaturesSection } from "./components/features-section";
+import { HowItWorksSection } from "./components/how-it-works-section";
+import { PricingSection } from "./components/pricing-section";
 
-export default function Home() {
-  const [showSettings, setShowSettings] = useState(false);
-  const copilot = useMaintainerCopilot();
+export default function LandingPage() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100">
-      <div className="max-w-3xl mx-auto px-4 py-12">
-        <header className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Maintainer Copilot</h1>
-            <p className="text-zinc-500 text-sm mt-1">
-              Paste a repo, fetch issues, get AI-powered summaries ranked by urgency
-            </p>
-          </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
-            title="Settings"
-          >
-            <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-2.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-        </header>
+    <div className="w-full bg-black text-white">
+      <section className="relative flex min-h-screen flex-col overflow-hidden">
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/hero-image.png')" }}
+        />
 
-        <RepositorySearch value={copilot.repoInput} loading={copilot.loadingIssues} onChange={copilot.setRepoInput} onSubmit={copilot.fetchIssues} />
-        {copilot.error && <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{copilot.error}</div>}
-        {copilot.issues.length > 0 && <IssuesPanel issues={copilot.issues} summaries={copilot.summaries} summarizingAll={copilot.summarizingAll} loadingIssueId={copilot.loadingIssueId} onSummarizeAll={copilot.summarizeAll} onSummarize={copilot.summarizeSingle} />}
-        {copilot.issues.length === 0 && !copilot.loadingIssues && <div className="text-center py-20 text-zinc-600"><p className="text-lg">Enter a GitHub repository to get started</p><p className="text-sm mt-1">e.g. facebook/react, vercel/next.js</p></div>}
-      </div>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        <nav className={`fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center justify-center rounded-full bg-white/90 backdrop-blur-md transition-all duration-500 ease-out ${scrolled ? "w-[88%] max-w-lg gap-3 px-4 py-1.5 md:w-[68%]" : "w-[88%] max-w-2xl gap-8 px-5 py-2.5 md:w-[78%]"}`}>
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Logo" className={`object-contain rounded-lg transition-all duration-300 ${scrolled ? "w-7 h-7" : "w-10 h-10"}`} />
+          <span className={`font-bold tracking-tight text-black transition-all duration-300 ${scrolled ? "text-sm" : "text-lg"}`}>Maintainer Copilot</span>
+        </div>
+
+        <div className={`hidden items-center text-sm font-medium text-black transition-all duration-300 md:flex ${scrolled ? "gap-3 text-xs" : "gap-6"}`}>
+          <a href="#features" className="hover:opacity-70 transition-opacity">Features</a>
+          <a href="#how-it-works" className="hover:opacity-70 transition-opacity">How It Works</a>
+          <a href="#pricing" className="hover:opacity-70 transition-opacity">Pricing</a>
+        </div>
+
+        <Link
+          href="/app"
+          className={`rounded-full bg-black font-medium text-white transition-all duration-300 hover:bg-zinc-800 ${scrolled ? "px-4 py-1.5 text-xs" : "px-5 py-2 text-sm"}`}
+        >
+          Open App
+        </Link>
+        </nav>
+
+        <main className="relative z-10 flex flex-1 flex-col items-center justify-start px-6 pt-32 text-center md:pt-36">
+        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white backdrop-blur-sm border border-black/20 text-sm text-black font-medium mb-5">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          Open Source &mdash; Free forever
+        </div>
+
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] max-w-4xl mb-4 text-black">
+          Triage issues
+          
+        </h1>
+
+        <p className="text-base md:text-lg text-black/70 max-w-xl mb-8 leading-relaxed">
+          AI powered issue summaries and urgency scoring for open source maintainers.
+          Stop drowning in notifications. Start shipping.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Link
+            href="/app"
+            className="group px-7 py-3 text-base font-medium rounded-full bg-white text-black  transition-all w-full sm:w-auto text-center"
+          >
+            <span className="inline-flex items-center gap-1">
+              Get Started
+              <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">&rarr;</span>
+            </span>
+          </Link>
+          <a
+            href="#how-it-works"
+            className="group flex items-center gap-2 px-7 py-3  font-medium rounded-full border border-black/30 text-black hover:bg-white transition-all w-full sm:w-auto text-center"
+          >
+            <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            See How It Works
+          </a>
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-bold text-white">
+          <span>No signup required</span>
+          <span>·</span>
+          <span>Bring your own API key</span>
+          <span>·</span>
+          <span>10 AI providers supported</span>
+        </div>
+        </main>
+      </section>
+      <FeaturesSection />
+      <HowItWorksSection />
+      <PricingSection />
     </div>
   );
 }

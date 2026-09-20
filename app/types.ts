@@ -17,4 +17,14 @@ export interface Summary {
   suggestedActions: string[];
 }
 
-export type Provider = "anthropic" | "openai" | "google";
+export type Provider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "groq"
+  | "mistral"
+  | "deepseek"
+  | "xai"
+  | "togetherai"
+  | "cohere"
+  | "fireworks";
