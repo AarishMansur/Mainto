@@ -60,7 +60,7 @@ export default function LandingPage() {
           
         </h1>
 
-        <p className="text-base md:text-lg text-black/70 max-w-xl mb-8 leading-relaxed">
+        <p className="  md:text-lg font-sans text-slate-950 max-w-xl mb-8 leading-relaxed">
           AI-powered triage for maintainers. Cut through the noise and ship what matters.
         </p>
 
