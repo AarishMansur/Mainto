@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { FeaturesSection } from "./components/features-section";
 import { HowItWorksSection } from "./components/how-it-works-section";
 import { PricingSection } from "./components/pricing-section";
@@ -15,24 +15,30 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const scrollToSection = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", `#${id}`);
+  };
+
   return (
-    <div className="w-full bg-black text-white">
+    <div id="top" className="w-full bg-black text-white">
       <section className="relative flex min-h-screen flex-col overflow-hidden">
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/hero-image.png')" }}
         />
 
-        <nav className={`fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center justify-center rounded-full bg-white/90 backdrop-blur-md transition-all duration-500 ease-out ${scrolled ? "w-[88%] max-w-lg gap-3 px-4 py-1.5 md:w-[68%]" : "w-[88%] max-w-2xl gap-8 px-5 py-2.5 md:w-[78%]"}`}>
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Logo" className={`object-contain rounded-lg transition-all duration-300 ${scrolled ? "w-7 h-7" : "w-10 h-10"}`} />
+        <nav className={`fixed left-1/2 top-4 z-50 flex -translate-x-1/2 items-center justify-center rounded-full bg-white/90 backdrop-blur-md transition-all duration-500 ease-out ${scrolled ? "w-[88%] max-w-lg gap-3 px-4 py-2 md:w-[68%]" : "w-[88%] max-w-2xl gap-8 px-5 py-3 md:w-[78%]"}`}>
+        <Link href="#top" onClick={(event) => scrollToSection(event, "top")} className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Maintainer Copilot home" className={`h-12 w-12 rounded-lg object-contain transition-all duration-300 ${scrolled ? "h-9 w-9" : ""}`} />
           <span className={`font-bold tracking-tight text-black transition-all duration-300 ${scrolled ? "text-sm" : "text-lg"}`}>Maintainer Copilot</span>
-        </div>
+        </Link>
 
         <div className={`hidden items-center text-sm font-medium text-black transition-all duration-300 md:flex ${scrolled ? "gap-3 text-xs" : "gap-6"}`}>
-          <a href="#features" className="hover:opacity-70 transition-opacity">Features</a>
-          <a href="#how-it-works" className="hover:opacity-70 transition-opacity">How It Works</a>
-          <a href="#pricing" className="hover:opacity-70 transition-opacity">Pricing</a>
+          <a href="#features" onClick={(event) => scrollToSection(event, "features")} className="hover:opacity-70 transition-opacity">Features</a>
+          <a href="#how-it-works" onClick={(event) => scrollToSection(event, "how-it-works")} className="hover:opacity-70 transition-opacity">How It Works</a>
+          <a href="#pricing" onClick={(event) => scrollToSection(event, "pricing")} className="hover:opacity-70 transition-opacity">Pricing</a>
         </div>
 
         <Link
@@ -50,13 +56,12 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] max-w-4xl mb-4 text-black">
-          Triage issues
+          Issues<span className="text-white">.</span>Priority<span className="text-white">.</span>OSS
           
         </h1>
 
         <p className="text-base md:text-lg text-black/70 max-w-xl mb-8 leading-relaxed">
-          AI powered issue summaries and urgency scoring for open source maintainers.
-          Stop drowning in notifications. Start shipping.
+          AI-powered triage for maintainers. Cut through the noise and ship what matters.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -71,6 +76,7 @@ export default function LandingPage() {
           </Link>
           <a
             href="#how-it-works"
+            onClick={(event) => scrollToSection(event, "how-it-works")}
             className="group flex items-center gap-2 px-7 py-3  font-medium rounded-full border border-black/30 text-black hover:bg-white transition-all w-full sm:w-auto text-center"
           >
             <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
