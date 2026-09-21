@@ -29,6 +29,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setGithubToken(settings.githubToken);
   }, []);
 
+  function handleProviderChange(newProvider: Provider) {
+    if (newProvider !== provider) {
+      setApiKey("");
+    }
+    setProvider(newProvider);
+  }
+
   function save() {
     saveStoredSettings({ provider, apiKey, githubToken });
     onClose();
@@ -45,7 +52,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             AI Provider
             <select
               value={provider}
-              onChange={(event) => setProvider(event.target.value as Provider)}
+              onChange={(event) => handleProviderChange(event.target.value as Provider)}
               className="mt-1 w-full rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400"
             >
               {PROVIDER_OPTIONS.map((p) => (

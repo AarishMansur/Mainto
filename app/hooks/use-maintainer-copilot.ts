@@ -36,8 +36,11 @@ export function useMaintainerCopilot() {
   }
 
   async function fetchIssues() {
-    const match = repoInput.trim().match(/^github\.com\/([^/]+)\/([^/]+)$/) || repoInput.trim().match(/^([^/]+)\/([^/]+)$/);
-    if (!match) return setError("Enter a valid repo: owner/repo or github.com/owner/repo");
+    const input = repoInput.trim();
+    const match = input.match(/^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+?)(?:\/|$)/) ||
+      input.match(/^github\.com\/([^/]+)\/([^/]+?)(?:\/|$)/) ||
+      input.match(/^([^/]+)\/([^/]+)$/);
+    if (!match) return setError("Enter a valid repo: owner/repo, github.com/owner/repo, or https://github.com/owner/repo");
     setError(""); setLoadingIssues(true); setSummaries(new Map());
     try {
       const settings = getStoredSettings();
