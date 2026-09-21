@@ -40,7 +40,7 @@ export const PROVIDER_LABELS: Record<Provider, string> = {
 export const PROVIDER_MODELS: Record<Provider, string> = {
   anthropic: "claude-sonnet-4-20250514",
   openai: "gpt-4o",
-  google: "gemini-3.6-flash",
+  google: "gemini-3.1-flash-lite",
   groq: "qwen/qwen3-32b",
   mistral: "mistral-large-latest",
   deepseek: "deepseek-chat",

@@ -16,24 +16,30 @@ export async function POST(request: NextRequest) {
 
     const provider =
       (request.headers.get("x-ai-provider") as Provider) || "anthropic";
+    const suppliedApiKey = request.headers.get("x-ai-key")?.trim() || "";
     const apiKey =
-      request.headers.get("x-ai-key") ||
-      process.env.ANTHROPIC_API_KEY ||
-      "";
+      suppliedApiKey || (provider === "anthropic" ? process.env.ANTHROPIC_API_KEY || "" : "");
 
     if (!apiKey) {
       return NextResponse.json(
         {
           error:
-            "No API key provided. Add one in settings or set ANTHROPIC_API_KEY in .env.local",
+            `No API key provided for ${provider}. Add the matching key in Settings${provider === "anthropic" ? " or set ANTHROPIC_API_KEY in .env.local" : ""}.`,
         },
         { status: 401 }
       );
     }
 
-    const summaries = await Promise.all(
-      issues.map((issue) => summarizeIssue(issue, provider, apiKey))
-    );
+    const summaries = [];
+    const batchSize = 2;
+
+    for (let index = 0; index < issues.length; index += batchSize) {
+      const batch = issues.slice(index, index + batchSize);
+      const batchSummaries = await Promise.all(
+        batch.map((issue) => summarizeIssue(issue, provider, apiKey))
+      );
+      summaries.push(...batchSummaries);
+    }
 
     const token = process.env.NEXT_PUBLIC_SANITY_API_TOKEN;
     const results = [];
