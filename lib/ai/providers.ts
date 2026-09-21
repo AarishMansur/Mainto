@@ -8,6 +8,7 @@ import { createXai } from "@ai-sdk/xai";
 import { createTogetherAI } from "@ai-sdk/togetherai";
 import { createCohere } from "@ai-sdk/cohere";
 import { createFireworks } from "@ai-sdk/fireworks";
+import { createHuggingFace } from "@ai-sdk/huggingface";
 
 export type Provider =
   | "anthropic"
@@ -19,7 +20,8 @@ export type Provider =
   | "xai"
   | "togetherai"
   | "cohere"
-  | "fireworks";
+  | "fireworks"
+  | "huggingface";
 
 export const PROVIDER_LABELS: Record<Provider, string> = {
   anthropic: "Anthropic (Claude)",
@@ -32,19 +34,21 @@ export const PROVIDER_LABELS: Record<Provider, string> = {
   togetherai: "Together AI",
   cohere: "Cohere",
   fireworks: "Fireworks",
+  huggingface: "Hugging Face (Llama 3.3 70B)",
 };
 
 export const PROVIDER_MODELS: Record<Provider, string> = {
   anthropic: "claude-sonnet-4-20250514",
   openai: "gpt-4o",
   google: "gemini-2.0-flash",
-  groq: "llama-3.3-70b-versatile",
+  groq: "qwen/qwen3-32b",
   mistral: "mistral-large-latest",
   deepseek: "deepseek-chat",
   xai: "grok-3",
   togetherai: "meta-llama/Llama-3-70b-chat-hf",
   cohere: "command-r-plus",
   fireworks: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+  huggingface: "meta-llama/Llama-3.3-70B-Instruct",
 };
 
 export function getModel(provider: Provider, apiKey: string) {
@@ -69,6 +73,8 @@ export function getModel(provider: Provider, apiKey: string) {
       return createCohere({ apiKey })(PROVIDER_MODELS.cohere);
     case "fireworks":
       return createFireworks({ apiKey })(PROVIDER_MODELS.fireworks);
+    case "huggingface":
+      return createHuggingFace({ apiKey })(PROVIDER_MODELS.huggingface);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

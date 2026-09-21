@@ -8,13 +8,14 @@ const PROVIDER_OPTIONS: { value: Provider; label: string; model: string }[] = [
   { value: "anthropic", label: "Anthropic (Claude)", model: "claude-sonnet-4" },
   { value: "openai", label: "OpenAI (GPT-4o)", model: "gpt-4o" },
   { value: "google", label: "Google (Gemini)", model: "gemini-2.0-flash" },
-  { value: "groq", label: "Groq (Llama 3.3 70B)", model: "llama-3.3-70b-versatile" },
+  { value: "groq", label: "Groq (Qwen 3)", model: "qwen/qwen3-32b" },
   { value: "mistral", label: "Mistral (Large)", model: "mistral-large" },
   { value: "deepseek", label: "DeepSeek (Chat)", model: "deepseek-chat" },
   { value: "xai", label: "xAI (Grok 3)", model: "grok-3" },
   { value: "togetherai", label: "Together AI (Llama 3 70B)", model: "llama-3-70b" },
   { value: "cohere", label: "Cohere (Command R+)", model: "command-r-plus" },
   { value: "fireworks", label: "Fireworks (Llama 3.3 70B)", model: "llama-v3.3-70b" },
+  { value: "huggingface", label: "Hugging Face (Llama 3.3 70B)", model: "meta-llama/Llama-3.3-70B-Instruct" },
 ];
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {

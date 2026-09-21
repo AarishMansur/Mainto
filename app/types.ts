@@ -27,4 +27,5 @@ export type Provider =
   | "xai"
   | "togetherai"
   | "cohere"
-  | "fireworks";
+  | "fireworks"
+  | "huggingface";
