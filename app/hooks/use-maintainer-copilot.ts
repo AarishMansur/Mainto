@@ -4,6 +4,14 @@ import { useState } from "react";
 import { getStoredSettings } from "../lib/settings";
 import type { Issue, Provider, Summary } from "../types";
 
+interface PrioritizationResult {
+  priority: string;
+  reasoning: string;
+  matchedPatterns: string[];
+  suggestedResolution: string;
+  confidence: number;
+}
+
 export function useMaintainerCopilot() {
   const [repoInput, setRepoInput] = useState("");
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -12,6 +20,8 @@ export function useMaintainerCopilot() {
   const [summarizingAll, setSummarizingAll] = useState(false);
   const [loadingIssueId, setLoadingIssueId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [prioritizingId, setPrioritizingId] = useState<string | null>(null);
+  const [prioritizationResults, setPrioritizationResults] = useState<Map<string, PrioritizationResult>>(new Map());
 
   async function requestSummaries(requestIssues: Issue[]) {
     const settings = getStoredSettings();
@@ -53,5 +63,25 @@ export function useMaintainerCopilot() {
     finally { setSummarizingAll(false); }
   }
 
-  return { repoInput, setRepoInput, issues, summaries, loadingIssues, summarizingAll, loadingIssueId, error, fetchIssues, summarizeSingle, summarizeAll };
+  async function prioritizeIssue(issue: Issue) {
+    setPrioritizingId(issue.githubId.toString()); setError("");
+    try {
+      const settings = getStoredSettings();
+      const response = await fetch("/api/prioritize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-ai-provider": settings.provider as Provider, "x-ai-key": settings.apiKey },
+        body: JSON.stringify({
+          issue: { _id: issue.githubId.toString(), githubId: issue.githubId, title: issue.title, body: issue.body, labels: issue.labels, commentsCount: issue.commentsCount },
+          provider: settings.provider,
+          apiKey: settings.apiKey,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setPrioritizationResults((previous) => new Map(previous).set(issue.githubId.toString(), data));
+    } catch (error) { setError(error instanceof Error ? error.message : "Failed to prioritize"); }
+    finally { setPrioritizingId(null); }
+  }
+
+  return { repoInput, setRepoInput, issues, summaries, loadingIssues, summarizingAll, loadingIssueId, error, fetchIssues, summarizeSingle, summarizeAll, prioritizingId, prioritizationResults, prioritizeIssue };
 }

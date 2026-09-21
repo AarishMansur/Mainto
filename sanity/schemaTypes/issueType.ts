@@ -66,6 +66,60 @@ export const issueType = defineType({
       title: 'Fetched At',
       type: 'datetime',
     }),
+    defineField({
+      name: 'workflowStatus',
+      title: 'Workflow Status',
+      type: 'string',
+      initialValue: 'new',
+      options: {
+        list: [
+          { title: 'New', value: 'new' },
+          { title: 'Summarized', value: 'summarized' },
+          { title: 'Prioritized', value: 'prioritized' },
+          { title: 'In Review', value: 'in_review' },
+          { title: 'Resolved', value: 'resolved' },
+        ],
+      },
+    }),
+    defineField({
+      name: 'agentPriority',
+      title: 'Agent Assigned Priority',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'P0 - Critical', value: 'P0' },
+          { title: 'P1 - High', value: 'P1' },
+          { title: 'P2 - Medium', value: 'P2' },
+          { title: 'P3 - Low', value: 'P3' },
+          { title: 'P4 - Backlog', value: 'P4' },
+        ],
+      },
+    }),
+    defineField({
+      name: 'agentReasoning',
+      title: 'Agent Reasoning',
+      type: 'text',
+      description: 'Why the agent assigned this priority',
+    }),
+    defineField({
+      name: 'matchedPatternIds',
+      title: 'Matched Patterns',
+      type: 'array',
+      of: [{ type: 'reference', to: [{ type: 'triagePattern' }] }],
+    }),
+    defineField({
+      name: 'maintainerDecision',
+      title: 'Maintainer Decision',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Accepted Agent Suggestion', value: 'accepted' },
+          { title: 'Overridden - Higher Priority', value: 'overridden_higher' },
+          { title: 'Overridden - Lower Priority', value: 'overridden_lower' },
+          { title: 'Pending Review', value: 'pending' },
+        ],
+      },
+    }),
   ],
   preview: {
     select: {
