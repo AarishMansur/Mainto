@@ -7,7 +7,7 @@ import type { Provider } from "../types";
 const PROVIDER_OPTIONS: { value: Provider; label: string; model: string }[] = [
   { value: "anthropic", label: "Anthropic (Claude)", model: "claude-sonnet-4" },
   { value: "openai", label: "OpenAI (GPT-4o)", model: "gpt-4o" },
-  { value: "google", label: "Google (Gemini)", model: "gemini-2.0-flash" },
+  { value: "google", label: "Google (Gemini)", model: "gemini-3.6-flash" },
   { value: "groq", label: "Groq (Qwen 3)", model: "qwen/qwen3-32b" },
   { value: "mistral", label: "Mistral (Large)", model: "mistral-large" },
   { value: "deepseek", label: "DeepSeek (Chat)", model: "deepseek-chat" },
