@@ -6,11 +6,17 @@ import { getStoredSettings } from "../lib/settings";
 import type { Issue, Provider, Summary } from "../types";
 
 interface PrioritizationResult {
+  decisionId?: string;
   priority: string;
   reasoning: string;
   matchedPatterns: string[];
   suggestedResolution: string;
   confidence: number;
+}
+
+interface FeedbackResult {
+  humanPriority: string;
+  agentAccuracy: number;
 }
 
 export function useMaintainerCopilot() {
@@ -23,6 +29,8 @@ export function useMaintainerCopilot() {
   const [error, setError] = useState("");
   const [prioritizingId, setPrioritizingId] = useState<string | null>(null);
   const [prioritizationResults, setPrioritizationResults] = useState<Map<string, PrioritizationResult>>(new Map());
+  const [feedbackResults, setFeedbackResults] = useState<Map<string, FeedbackResult>>(new Map());
+  const [feedbackSubmittingId, setFeedbackSubmittingId] = useState<string | null>(null);
 
   async function requestSummaries(requestIssues: Issue[]) {
     const settings = getStoredSettings();
@@ -116,5 +124,22 @@ export function useMaintainerCopilot() {
     finally { setPrioritizingId(null); }
   }
 
-  return { repoInput, setRepoInput, issues, summaries, loadingIssues, summarizingAll, loadingIssueId, error, fetchIssues, summarizeSingle, summarizeAll, prioritizingId, prioritizationResults, prioritizeIssue };
+  async function submitFeedback(issue: Issue, humanPriority: string) {
+    const result = prioritizationResults.get(issue.githubId.toString());
+    if (!result?.decisionId) return;
+    setFeedbackSubmittingId(result.decisionId); setError("");
+    try {
+      const response = await fetch("/api/triage-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decisionId: result.decisionId, humanPriority }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setFeedbackResults((previous) => new Map(previous).set(issue.githubId.toString(), { humanPriority: data.humanPriority, agentAccuracy: data.agentAccuracy }));
+    } catch (error) { setError(error instanceof Error ? error.message : "Failed to record feedback"); }
+    finally { setFeedbackSubmittingId(null); }
+  }
+
+  return { repoInput, setRepoInput, issues, summaries, loadingIssues, summarizingAll, loadingIssueId, error, fetchIssues, summarizeSingle, summarizeAll, prioritizingId, prioritizationResults, prioritizeIssue, feedbackResults, feedbackSubmittingId, submitFeedback };
 }
