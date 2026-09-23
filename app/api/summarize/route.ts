@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { summarizeIssue, type IssueToSummarize } from "@/lib/ai/summarize";
 import type { Provider } from "@/lib/ai/providers";
+import { issueDocumentId } from "@/lib/issue-document-id";
+import { saveGitHubIssue } from "@/lib/sanity-issue";
 import { client } from "@/sanity/lib/client";
 
 export async function POST(request: NextRequest) {
@@ -10,6 +12,16 @@ export async function POST(request: NextRequest) {
     if (!issues || issues.length === 0) {
       return NextResponse.json(
         { error: "issues array is required" },
+        { status: 400 }
+      );
+    }
+
+    const missingIdentity = issues.some(
+      (issue) => !issue.repoOwner || !issue.repoName || !Number.isInteger(issue.githubId)
+    );
+    if (missingIdentity) {
+      return NextResponse.json(
+        { error: "Each issue needs repoOwner, repoName, and githubId." },
         { status: 400 }
       );
     }
@@ -47,53 +59,26 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < issues.length; i++) {
       const issue = issues[i];
       const summary = summaries[i];
+      const issueId = issueDocumentId(issue.repoOwner, issue.repoName, issue.githubId);
 
-      const existingIssue = await client.fetch(
-        '*[_type == "issue" && githubId == $githubId && repoOwner == $repoOwner && repoName == $repoName][0]._id',
-        { githubId: issue.githubId, repoOwner: issue.repoOwner || "unknown", repoName: issue.repoName || "unknown" }
-      );
-
-      let issueId = existingIssue;
-
-      if (!issueId && token) {
-        const newIssue = await client.create(
-          {
-            _type: "issue",
-            githubId: issue.githubId,
-            repoOwner: issue.repoOwner || "unknown",
-            repoName: issue.repoName || "unknown",
-            title: issue.title,
-            body: issue.body,
-            state: "open",
-            labels: issue.labels,
-            commentsCount: issue.commentsCount,
-            fetchedAt: new Date().toISOString(),
-          },
-          { token }
-        );
-        issueId = newIssue._id;
-      }
-
-      if (issueId && token) {
-        await client.create(
-          {
-            _type: "issueSummary",
-            issueRef: { _type: "reference", _ref: issueId },
-            summary: summary.summary,
-            urgencyScore: summary.urgencyScore,
-            keyPoints: summary.keyPoints,
-            suggestedActions: summary.suggestedActions,
-            model: provider,
-            generatedAt: new Date().toISOString(),
-          },
-          { token }
-        );
+      if (token) {
+        await saveGitHubIssue(issue, token, { workflowStatus: "summarized" });
+        await client.withConfig({ useCdn: false, token, stega: false }).create({
+          _type: "issueSummary",
+          issueRef: { _type: "reference", _ref: issueId },
+          summary: summary.summary,
+          urgencyScore: summary.urgencyScore,
+          keyPoints: summary.keyPoints,
+          suggestedActions: summary.suggestedActions,
+          model: provider,
+          generatedAt: new Date().toISOString(),
+        });
       }
 
       results.push({
         ...summary,
         issueId,
-        storedInSanity: !!token && !!issueId,
+        storedInSanity: !!token,
       });
     }
 

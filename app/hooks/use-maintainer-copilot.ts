@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { issueDocumentId } from "@/lib/issue-document-id";
 import { getStoredSettings } from "../lib/settings";
 import type { Issue, Provider, Summary } from "../types";
 
@@ -28,7 +29,19 @@ export function useMaintainerCopilot() {
     const response = await fetch("/api/summarize", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-ai-provider": settings.provider as Provider, "x-ai-key": settings.apiKey },
-      body: JSON.stringify({ issues: requestIssues.map(({ githubId, title, body, labels, commentsCount }) => ({ githubId, title, body, labels, commentsCount })) }),
+      body: JSON.stringify({
+        issues: requestIssues.map(({ githubId, repoOwner, repoName, title, body, labels, commentsCount, state, url }) => ({
+          githubId,
+          repoOwner,
+          repoName,
+          title,
+          body,
+          labels,
+          commentsCount,
+          state,
+          url,
+        })),
+      }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
@@ -47,7 +60,14 @@ export function useMaintainerCopilot() {
       const response = await fetch("/api/issues", { method: "POST", headers: { "Content-Type": "application/json", ...(settings.githubToken ? { "x-github-token": settings.githubToken } : {}) }, body: JSON.stringify({ owner: match[1], repo: match[2] }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      setIssues(data.issues);
+      const [owner, repo] = [match[1], match[2]];
+      setIssues(
+        (data.issues as Omit<Issue, "repoOwner" | "repoName">[]).map((issue) => ({
+          ...issue,
+          repoOwner: owner,
+          repoName: repo,
+        })),
+      );
     } catch (error) { setError(error instanceof Error ? error.message : "Failed to fetch issues"); }
     finally { setLoadingIssues(false); }
   }
@@ -67,14 +87,24 @@ export function useMaintainerCopilot() {
   }
 
   async function prioritizeIssue(issue: Issue) {
-    setPrioritizingId(issue.githubId.toString()); setError("");
+    setPrioritizingId(issueDocumentId(issue.repoOwner, issue.repoName, issue.githubId)); setError("");
     try {
       const settings = getStoredSettings();
       const response = await fetch("/api/prioritize", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-ai-provider": settings.provider as Provider, "x-ai-key": settings.apiKey },
         body: JSON.stringify({
-          issue: { _id: issue.githubId.toString(), githubId: issue.githubId, title: issue.title, body: issue.body, labels: issue.labels, commentsCount: issue.commentsCount },
+          issue: {
+            githubId: issue.githubId,
+            repoOwner: issue.repoOwner,
+            repoName: issue.repoName,
+            title: issue.title,
+            body: issue.body,
+            labels: issue.labels,
+            commentsCount: issue.commentsCount,
+            state: issue.state,
+            url: issue.url,
+          },
           provider: settings.provider,
           apiKey: settings.apiKey,
         }),
