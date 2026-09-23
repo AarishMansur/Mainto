@@ -1,5 +1,7 @@
 export interface Issue {
   githubId: number;
+  repoOwner: string;
+  repoName: string;
   title: string;
   body: string | null;
   state: string;

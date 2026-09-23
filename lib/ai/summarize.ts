@@ -14,12 +14,14 @@ export type IssueSummary = z.infer<typeof summarySchema>;
 
 export interface IssueToSummarize {
   githubId: number;
+  repoOwner: string;
+  repoName: string;
   title: string;
   body: string | null;
   labels: string[];
   commentsCount: number;
-  repoOwner?: string;
-  repoName?: string;
+  state?: string;
+  url?: string;
 }
 
 export async function summarizeIssue(

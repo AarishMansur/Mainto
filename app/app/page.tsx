@@ -6,6 +6,7 @@ import { IssuesPanel } from "../components/issues-panel";
 import { RepositorySearch } from "../components/repository-search";
 import { SettingsModal } from "../components/settings-modal";
 import { WorkflowPipeline } from "../components/workflow-pipeline";
+import { issueDocumentId } from "@/lib/issue-document-id";
 import { useMaintainerCopilot } from "../hooks/use-maintainer-copilot";
 
 type View = "list" | "pipeline";
@@ -19,7 +20,7 @@ export default function AppPage() {
     const result = copilot.prioritizationResults.get(issue.githubId.toString());
     const hasSummary = copilot.summaries.has(issue.githubId);
     return {
-      _id: issue.githubId.toString(),
+      _id: issueDocumentId(issue.repoOwner, issue.repoName, issue.githubId),
       githubId: issue.githubId,
       title: issue.title,
       labels: issue.labels,
@@ -86,7 +87,14 @@ export default function AppPage() {
               <h2 className="text-sm font-medium text-zinc-600">Triage Pipeline</h2>
               <p className="text-xs text-zinc-500">Click &quot;Run Agent&quot; to prioritize based on historical patterns</p>
             </div>
-            <WorkflowPipeline issues={workflowIssues} onPrioritize={(issue) => copilot.prioritizeIssue({ ...issue, body: null, state: "open", assignees: [], createdAt: "", url: "" })} prioritizingId={copilot.prioritizingId} />
+            <WorkflowPipeline
+              issues={workflowIssues}
+              onPrioritize={(card) => {
+                const issue = copilot.issues.find((item) => item.githubId === card.githubId);
+                if (issue) copilot.prioritizeIssue(issue);
+              }}
+              prioritizingId={copilot.prioritizingId}
+            />
           </div>
         )}
 

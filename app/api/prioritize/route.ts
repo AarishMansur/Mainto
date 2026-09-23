@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { client } from "@/sanity/lib/client";
 import { getModel, type Provider } from "@/lib/ai/providers";
-
-interface IssueToPrioritize {
-  _id: string;
-  githubId: number;
-  title: string;
-  body: string | null;
-  labels: string[];
-  commentsCount: number;
-}
+import { saveGitHubIssue, type GitHubIssueDraft } from "@/lib/sanity-issue";
+import { client } from "@/sanity/lib/client";
 
 interface HistoricalPattern {
   _id: string;
@@ -43,7 +35,7 @@ const prioritizationSchema = z.object({
 });
 
 async function findMatchingPatterns(
-  issue: IssueToPrioritize,
+  issue: GitHubIssueDraft,
   patterns: HistoricalPattern[]
 ): Promise<HistoricalPattern[]> {
   return patterns.filter((pattern) => {
@@ -65,7 +57,7 @@ async function findMatchingPatterns(
 }
 
 async function findSimilarDecisions(
-  issue: IssueToPrioritize,
+  issue: GitHubIssueDraft,
   decisions: HistoricalDecision[]
 ): Promise<HistoricalDecision[]> {
   return decisions.filter((decision) => {
@@ -81,14 +73,14 @@ async function findSimilarDecisions(
 export async function POST(request: NextRequest) {
   try {
     const { issue, provider, apiKey }: {
-      issue: IssueToPrioritize;
+      issue: GitHubIssueDraft;
       provider: Provider;
       apiKey: string;
     } = await request.json();
 
-    if (!issue) {
+    if (!issue?.repoOwner || !issue.repoName || !Number.isInteger(issue.githubId)) {
       return NextResponse.json(
-        { error: "issue is required" },
+        { error: "issue repoOwner, repoName, and githubId are required" },
         { status: 400 }
       );
     }
@@ -149,39 +141,34 @@ Base your decision on the historical patterns and similar past decisions. If pat
       prompt,
     });
 
+    let issueId: string | undefined;
     if (token) {
-      await client.create(
-        {
-          _type: "triageDecision",
-          issueRef: { _type: "reference", _ref: issue._id },
-          assignedPriority: object.priority,
-          resolution: object.suggestedResolution,
-          agentSuggestion: object.reasoning,
-          agentAccuracy: null,
-          matchedPatterns: matchingPatterns.map((p) => ({
-            _type: "reference",
-            _ref: p._id,
-          })),
-          decidedAt: new Date().toISOString(),
-        },
-        { token }
-      );
+      const matchedPatternIds = matchingPatterns.map((pattern) => ({
+        _key: pattern._id,
+        _type: "reference" as const,
+        _ref: pattern._id,
+      }));
+      issueId = await saveGitHubIssue(issue, token, {
+        workflowStatus: "prioritized",
+        agentPriority: object.priority,
+        agentReasoning: object.reasoning,
+        matchedPatternIds,
+      });
 
-      await client
-        .patch(issue._id)
-        .set({
-          workflowStatus: "prioritized",
-          agentPriority: object.priority,
-          agentReasoning: object.reasoning,
-          matchedPatternIds: matchingPatterns.map((p) => ({
-            _type: "reference",
-            _ref: p._id,
-          })),
-        })
-        .commit({ token });
+      await client.withConfig({ useCdn: false, token, stega: false }).create({
+        _type: "triageDecision",
+        issueRef: { _type: "reference", _ref: issueId },
+        assignedPriority: object.priority,
+        resolution: object.suggestedResolution,
+        agentSuggestion: object.reasoning,
+        agentAccuracy: null,
+        matchedPatterns: matchedPatternIds,
+        decidedAt: new Date().toISOString(),
+      });
     }
 
     return NextResponse.json({
+      issueId,
       priority: object.priority,
       reasoning: object.reasoning,
       matchedPatterns: matchingPatterns.map((p) => p.patternName),
