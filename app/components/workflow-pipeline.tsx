@@ -9,13 +9,20 @@ interface Issue {
   workflowStatus: string;
   agentPriority?: string;
   agentReasoning?: string;
+  decisionId?: string;
+  humanPriority?: string;
+  agentAccuracy?: number;
 }
 
 interface WorkflowPipelineProps {
   issues: Issue[];
   onPrioritize: (issue: Issue) => void;
   prioritizingId: string | null;
+  onFeedback: (issue: Issue, humanPriority: string) => void;
+  feedbackSubmittingId: string | null;
 }
+
+const PRIORITIES = ["P0", "P1", "P2", "P3", "P4"];
 
 const COLUMNS = [
   { id: "new", label: "New", color: "border-zinc-500" },
@@ -37,10 +44,14 @@ function IssueCard({
   issue,
   onPrioritize,
   isPrioritizing,
+  onFeedback,
+  isSubmittingFeedback,
 }: {
   issue: Issue;
   onPrioritize: () => void;
   isPrioritizing: boolean;
+  onFeedback: (humanPriority: string) => void;
+  isSubmittingFeedback: boolean;
 }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 hover:border-zinc-700 transition-colors">
@@ -83,6 +94,37 @@ function IssueCard({
           {issue.agentReasoning}
         </p>
       )}
+      {issue.decisionId && (
+        <div className="mt-2 border-t border-zinc-800 pt-2">
+          {issue.humanPriority ? (
+            <div className="flex items-center gap-1.5 text-[10px]">
+              <span className="text-zinc-500">You set</span>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-medium border ${PRIORITY_COLORS[issue.humanPriority]}`}>
+                {issue.humanPriority}
+              </span>
+              <span className={issue.agentAccuracy === 100 ? "text-green-400" : "text-red-400"}>
+                {issue.agentAccuracy === 100 ? "agent matched" : "agent missed"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-zinc-500">Override:</span>
+              <div className="flex gap-1">
+                {PRIORITIES.map((priority) => (
+                  <button
+                    key={priority}
+                    onClick={() => onFeedback(priority)}
+                    disabled={isSubmittingFeedback}
+                    className={`px-1.5 py-0.5 text-[10px] font-medium rounded border transition-colors disabled:opacity-50 ${PRIORITY_COLORS[priority]}`}
+                  >
+                    {priority}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -91,6 +133,8 @@ export function WorkflowPipeline({
   issues,
   onPrioritize,
   prioritizingId,
+  onFeedback,
+  feedbackSubmittingId,
 }: WorkflowPipelineProps) {
   return (
     <div className="overflow-x-auto">
@@ -118,6 +162,8 @@ export function WorkflowPipeline({
                     issue={issue}
                     onPrioritize={() => onPrioritize(issue)}
                     isPrioritizing={prioritizingId === issue._id}
+                    onFeedback={(humanPriority) => onFeedback(issue, humanPriority)}
+                    isSubmittingFeedback={feedbackSubmittingId === issue.decisionId}
                   />
                 ))}
                 {colIssues.length === 0 && (

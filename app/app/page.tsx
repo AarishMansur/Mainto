@@ -18,6 +18,7 @@ export default function AppPage() {
 
   const workflowIssues = copilot.issues.map((issue) => {
     const result = copilot.prioritizationResults.get(issue.githubId.toString());
+    const feedback = copilot.feedbackResults.get(issue.githubId.toString());
     const hasSummary = copilot.summaries.has(issue.githubId);
     return {
       _id: issueDocumentId(issue.repoOwner, issue.repoName, issue.githubId),
@@ -28,6 +29,9 @@ export default function AppPage() {
       workflowStatus: result ? "prioritized" : hasSummary ? "summarized" : "new",
       agentPriority: result?.priority,
       agentReasoning: result?.reasoning,
+      decisionId: result?.decisionId,
+      humanPriority: feedback?.humanPriority,
+      agentAccuracy: feedback?.agentAccuracy,
     };
   });
 
@@ -94,6 +98,11 @@ export default function AppPage() {
                 if (issue) copilot.prioritizeIssue(issue);
               }}
               prioritizingId={copilot.prioritizingId}
+              onFeedback={(card, humanPriority) => {
+                const issue = copilot.issues.find((item) => item.githubId === card.githubId);
+                if (issue) copilot.submitFeedback(issue, humanPriority);
+              }}
+              feedbackSubmittingId={copilot.feedbackSubmittingId}
             />
           </div>
         )}

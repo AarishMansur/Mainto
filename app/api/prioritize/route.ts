@@ -3,28 +3,13 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { getModel, type Provider } from "@/lib/ai/providers";
 import { saveGitHubIssue, type GitHubIssueDraft } from "@/lib/sanity-issue";
+import {
+  findMatchingPatterns,
+  findSimilarDecisions,
+  type HistoricalDecision,
+  type HistoricalPattern,
+} from "@/lib/triage/matching";
 import { client } from "@/sanity/lib/client";
-
-interface HistoricalPattern {
-  _id: string;
-  patternName: string;
-  keywords: string[];
-  labelPatterns: string[];
-  avgUrgency: number;
-  typicalResolution: string;
-  avgResolutionDays: number;
-  learnedFrom: number;
-}
-
-interface HistoricalDecision {
-  assignedPriority: string;
-  resolution: string;
-  agentAccuracy: number | null;
-  issueRef: {
-    title: string;
-    labels: string[];
-  };
-}
 
 const prioritizationSchema = z.object({
   priority: z.enum(["P0", "P1", "P2", "P3", "P4"]),
@@ -33,42 +18,6 @@ const prioritizationSchema = z.object({
   suggestedResolution: z.string().describe("Suggested resolution based on history"),
   confidence: z.number().min(0).max(100).describe("Confidence in this suggestion"),
 });
-
-async function findMatchingPatterns(
-  issue: GitHubIssueDraft,
-  patterns: HistoricalPattern[]
-): Promise<HistoricalPattern[]> {
-  return patterns.filter((pattern) => {
-    const titleLower = issue.title.toLowerCase();
-    const bodyLower = (issue.body || "").toLowerCase();
-
-    const keywordMatch = pattern.keywords.some(
-      (kw) =>
-        titleLower.includes(kw.toLowerCase()) ||
-        bodyLower.includes(kw.toLowerCase())
-    );
-
-    const labelMatch = pattern.labelPatterns.some((lp) =>
-      issue.labels.some((l) => l.toLowerCase().includes(lp.toLowerCase()))
-    );
-
-    return keywordMatch || labelMatch;
-  });
-}
-
-async function findSimilarDecisions(
-  issue: GitHubIssueDraft,
-  decisions: HistoricalDecision[]
-): Promise<HistoricalDecision[]> {
-  return decisions.filter((decision) => {
-    if (!decision.issueRef) return false;
-    const titleLower = issue.title.toLowerCase();
-    const decisionTitleLower = (decision.issueRef.title || "").toLowerCase();
-
-    const words = titleLower.split(/\s+/).filter((w) => w.length > 3);
-    return words.some((word) => decisionTitleLower.includes(word));
-  });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,13 +42,13 @@ export async function POST(request: NextRequest) {
       ),
       token
         ? client.fetch<HistoricalDecision[]>(
-            '*[_type == "triageDecision"]{assignedPriority, resolution, agentAccuracy, issueRef->{title, labels}} | order(decidedAt desc)[0...100]'
+            '*[_type == "triageDecision" && agentAccuracy != 0]{assignedPriority, resolution, agentAccuracy, issueRef->{title, labels}} | order(decidedAt desc)[0...100]'
           )
         : Promise.resolve([]),
     ]);
 
-    const matchingPatterns = await findMatchingPatterns(issue, patterns);
-    const similarDecisions = await findSimilarDecisions(issue, decisions);
+    const matchingPatterns = findMatchingPatterns(issue, patterns);
+    const similarDecisions = findSimilarDecisions(issue, decisions);
 
     const model = getModel(provider, apiKey);
 
@@ -142,6 +91,7 @@ Base your decision on the historical patterns and similar past decisions. If pat
     });
 
     let issueId: string | undefined;
+    let decisionId: string | undefined;
     if (token) {
       const matchedPatternIds = matchingPatterns.map((pattern) => ({
         _key: pattern._id,
@@ -155,20 +105,24 @@ Base your decision on the historical patterns and similar past decisions. If pat
         matchedPatternIds,
       });
 
-      await client.withConfig({ useCdn: false, token, stega: false }).create({
-        _type: "triageDecision",
-        issueRef: { _type: "reference", _ref: issueId },
-        assignedPriority: object.priority,
-        resolution: object.suggestedResolution,
-        agentSuggestion: object.reasoning,
-        agentAccuracy: null,
-        matchedPatterns: matchedPatternIds,
-        decidedAt: new Date().toISOString(),
-      });
+      const decision = await client
+        .withConfig({ useCdn: false, token, stega: false })
+        .create({
+          _type: "triageDecision",
+          issueRef: { _type: "reference", _ref: issueId },
+          assignedPriority: object.priority,
+          resolution: object.suggestedResolution,
+          agentSuggestion: object.reasoning,
+          agentAccuracy: null,
+          matchedPatterns: matchedPatternIds,
+          decidedAt: new Date().toISOString(),
+        });
+      decisionId = decision._id;
     }
 
     return NextResponse.json({
       issueId,
+      decisionId,
       priority: object.priority,
       reasoning: object.reasoning,
       matchedPatterns: matchingPatterns.map((p) => p.patternName),
