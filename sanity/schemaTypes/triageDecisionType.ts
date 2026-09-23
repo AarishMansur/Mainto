@@ -59,6 +59,21 @@ export const triageDecisionType = defineType({
       description: 'What the agent suggested vs what was actually decided',
     }),
     defineField({
+      name: 'humanPriority',
+      title: 'Human Priority',
+      type: 'string',
+      description: 'Priority a maintainer set when overriding the agent',
+      options: {
+        list: [
+          { title: 'P0 - Critical', value: 'P0' },
+          { title: 'P1 - High', value: 'P1' },
+          { title: 'P2 - Medium', value: 'P2' },
+          { title: 'P3 - Low', value: 'P3' },
+          { title: 'P4 - Backlog', value: 'P4' },
+        ],
+      },
+    }),
+    defineField({
       name: 'agentAccuracy',
       title: 'Agent Accuracy',
       type: 'number',

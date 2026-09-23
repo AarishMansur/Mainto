@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       ),
       token
         ? client.fetch<HistoricalDecision[]>(
-            '*[_type == "triageDecision"]{assignedPriority, resolution, agentAccuracy, issueRef->{title, labels}} | order(decidedAt desc)[0...100]'
+            '*[_type == "triageDecision" && agentAccuracy != 0]{assignedPriority, resolution, agentAccuracy, issueRef->{title, labels}} | order(decidedAt desc)[0...100]'
           )
         : Promise.resolve([]),
     ]);
@@ -91,6 +91,7 @@ Base your decision on the historical patterns and similar past decisions. If pat
     });
 
     let issueId: string | undefined;
+    let decisionId: string | undefined;
     if (token) {
       const matchedPatternIds = matchingPatterns.map((pattern) => ({
         _key: pattern._id,
@@ -104,20 +105,24 @@ Base your decision on the historical patterns and similar past decisions. If pat
         matchedPatternIds,
       });
 
-      await client.withConfig({ useCdn: false, token, stega: false }).create({
-        _type: "triageDecision",
-        issueRef: { _type: "reference", _ref: issueId },
-        assignedPriority: object.priority,
-        resolution: object.suggestedResolution,
-        agentSuggestion: object.reasoning,
-        agentAccuracy: null,
-        matchedPatterns: matchedPatternIds,
-        decidedAt: new Date().toISOString(),
-      });
+      const decision = await client
+        .withConfig({ useCdn: false, token, stega: false })
+        .create({
+          _type: "triageDecision",
+          issueRef: { _type: "reference", _ref: issueId },
+          assignedPriority: object.priority,
+          resolution: object.suggestedResolution,
+          agentSuggestion: object.reasoning,
+          agentAccuracy: null,
+          matchedPatterns: matchedPatternIds,
+          decidedAt: new Date().toISOString(),
+        });
+      decisionId = decision._id;
     }
 
     return NextResponse.json({
       issueId,
+      decisionId,
       priority: object.priority,
       reasoning: object.reasoning,
       matchedPatterns: matchingPatterns.map((p) => p.patternName),
