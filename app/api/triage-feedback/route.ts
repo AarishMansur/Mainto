@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { applyHumanFeedback, PRIORITIES } from "@/lib/triage/precedent";
+import { sanityWriteToken } from "@/lib/sanity-token";
 import { client } from "@/sanity/lib/client";
 
 const feedbackSchema = z.object({
   decisionId: z.string().min(1),
-  humanPriority: z.enum(["P0", "P1", "P2", "P3", "P4"]),
+  humanPriority: z.enum(PRIORITIES),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    const token = process.env.NEXT_PUBLIC_SANITY_API_TOKEN;
+    const token = sanityWriteToken();
     if (!token) {
       return NextResponse.json(
         { error: "Sanity write token is not configured" },
@@ -35,11 +37,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Decision not found" }, { status: 404 });
     }
 
-    const agentAccuracy = decision.assignedPriority === humanPriority ? 100 : 0;
+    const feedback = applyHumanFeedback(decision.assignedPriority, humanPriority);
 
-    await writer.patch(decisionId).set({ humanPriority, agentAccuracy }).commit();
+    await writer.patch(decisionId).set(feedback).commit();
 
-    return NextResponse.json({ decisionId, humanPriority, agentAccuracy });
+    return NextResponse.json({ decisionId, ...feedback });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to record feedback";

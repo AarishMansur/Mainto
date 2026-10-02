@@ -13,3 +13,21 @@ For each issue, provide:
 4. 2-3 suggested actions for the maintainer
 
 Be concise and direct. Think like a maintainer scanning their issue tracker.`;
+
+export function buildSummaryPrompt(issue: {
+  githubId: number;
+  title: string;
+  labels: string[];
+  commentsCount: number;
+  body: string | null;
+}) {
+  const prompt = [
+    `Issue #${issue.githubId}: ${issue.title}`,
+    `Labels: ${issue.labels.length > 0 ? issue.labels.join(", ") : "none"}`,
+    `Comments: ${issue.commentsCount}`,
+    "Body:",
+    issue.body?.slice(0, 3000) || "No description provided.",
+  ].join("\n");
+
+  return { instructions: SUMMARIZE_SYSTEM_PROMPT, prompt };
+}

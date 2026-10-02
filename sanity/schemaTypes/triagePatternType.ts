@@ -6,6 +6,18 @@ export const triagePatternType = defineType({
   type: 'document',
   fields: [
     defineField({
+      name: 'repoOwner',
+      title: 'Repository Owner',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'repoName',
+      title: 'Repository Name',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: 'patternName',
       title: 'Pattern Name',
       type: 'string',

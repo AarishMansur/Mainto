@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { getModel, type Provider } from "./providers";
-import { SUMMARIZE_SYSTEM_PROMPT } from "../prompts";
+import { buildSummaryPrompt } from "../prompts";
 
 export const summarySchema = z.object({
   summary: z.string().describe("2-3 sentence summary in plain English"),
@@ -31,20 +31,14 @@ export async function summarizeIssue(
 ): Promise<IssueSummary> {
   const model = getModel(provider, apiKey);
 
-  const issueText = `
-Issue #${issue.githubId}: ${issue.title}
-Labels: ${issue.labels.length > 0 ? issue.labels.join(", ") : "none"}
-Comments: ${issue.commentsCount}
-Body:
-${issue.body?.slice(0, 3000) || "No description provided."}
-`;
+  const { instructions, prompt } = buildSummaryPrompt(issue);
 
   const { object } = await generateObject({
     model,
     output: "object",
     schema: summarySchema,
-    instructions: SUMMARIZE_SYSTEM_PROMPT,
-    prompt: issueText,
+    instructions,
+    prompt,
   });
 
   return object;

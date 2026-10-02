@@ -1,10 +1,30 @@
 import { defineField, defineType } from 'sanity'
 
+const priorityOptions = [
+  { title: 'P0 - Critical', value: 'P0' },
+  { title: 'P1 - High', value: 'P1' },
+  { title: 'P2 - Medium', value: 'P2' },
+  { title: 'P3 - Low', value: 'P3' },
+  { title: 'P4 - Backlog', value: 'P4' },
+]
+
 export const triageDecisionType = defineType({
   name: 'triageDecision',
   title: 'Triage Decision',
   type: 'document',
   fields: [
+    defineField({
+      name: 'repoOwner',
+      title: 'Repository Owner',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'repoName',
+      title: 'Repository Name',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+    }),
     defineField({
       name: 'issueRef',
       title: 'Issue',
@@ -22,16 +42,23 @@ export const triageDecisionType = defineType({
       name: 'assignedPriority',
       title: 'Assigned Priority',
       type: 'string',
-      options: {
-        list: [
-          { title: 'P0 - Critical', value: 'P0' },
-          { title: 'P1 - High', value: 'P1' },
-          { title: 'P2 - Medium', value: 'P2' },
-          { title: 'P3 - Low', value: 'P3' },
-          { title: 'P4 - Backlog', value: 'P4' },
-        ],
-      },
+      description: 'Priority suggested to the maintainer for this repository',
+      options: { list: priorityOptions },
       validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'modelPriority',
+      title: 'Model Priority',
+      type: 'string',
+      description: 'Priority the model produced. Model output is not precedent.',
+      options: { list: priorityOptions },
+    }),
+    defineField({
+      name: 'precedentPriority',
+      title: 'Precedent Priority',
+      type: 'string',
+      description: 'Maintainer decision later triage in this repository may learn from.',
+      options: { list: priorityOptions },
     }),
     defineField({
       name: 'resolution',
@@ -62,16 +89,8 @@ export const triageDecisionType = defineType({
       name: 'humanPriority',
       title: 'Human Priority',
       type: 'string',
-      description: 'Priority a maintainer set when overriding the agent',
-      options: {
-        list: [
-          { title: 'P0 - Critical', value: 'P0' },
-          { title: 'P1 - High', value: 'P1' },
-          { title: 'P2 - Medium', value: 'P2' },
-          { title: 'P3 - Low', value: 'P3' },
-          { title: 'P4 - Backlog', value: 'P4' },
-        ],
-      },
+      description: 'Priority the maintainer confirmed or corrected to',
+      options: { list: priorityOptions },
     }),
     defineField({
       name: 'agentAccuracy',

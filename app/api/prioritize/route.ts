@@ -1,94 +1,110 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateObject } from "ai";
-import { z } from "zod";
 import { getModel, type Provider } from "@/lib/ai/providers";
 import { saveGitHubIssue, type GitHubIssueDraft } from "@/lib/sanity-issue";
 import {
   findMatchingPatterns,
-  findSimilarDecisions,
   type HistoricalDecision,
   type HistoricalPattern,
 } from "@/lib/triage/matching";
+import {
+  patternsForRepository,
+  REPOSITORY_PATTERNS_QUERY,
+  REPOSITORY_PRECEDENT_QUERY,
+  resolveSuggestedPriority,
+  selectPrecedent,
+  shouldConsultModel,
+  type Priority,
+  type RepositoryScope,
+} from "@/lib/triage/precedent";
+import { buildTriagePrompt, prioritizationSchema } from "@/lib/triage/prompt";
+import { sanityWriteToken } from "@/lib/sanity-token";
 import { client } from "@/sanity/lib/client";
 
-const prioritizationSchema = z.object({
-  priority: z.enum(["P0", "P1", "P2", "P3", "P4"]),
-  reasoning: z.string().describe("Why this priority was assigned"),
-  matchedPatterns: z.array(z.string()).describe("Which historical patterns matched"),
-  suggestedResolution: z.string().describe("Suggested resolution based on history"),
-  confidence: z.number().min(0).max(100).describe("Confidence in this suggestion"),
-});
+const REPO_SEGMENT = /^[A-Za-z0-9_.-]+$/;
 
 export async function POST(request: NextRequest) {
   try {
-    const { issue, provider, apiKey }: {
-      issue: GitHubIssueDraft;
-      provider: Provider;
-      apiKey: string;
-    } = await request.json();
+    const body = await request.json();
+    const issue = body?.issue as GitHubIssueDraft | undefined;
+    const provider = body?.provider as Provider | undefined;
+    const apiKey = typeof body?.apiKey === "string" ? body.apiKey.trim() : "";
 
-    if (!issue?.repoOwner || !issue.repoName || !Number.isInteger(issue.githubId)) {
+    if (
+      !issue?.repoOwner ||
+      !issue.repoName ||
+      !REPO_SEGMENT.test(issue.repoOwner) ||
+      !REPO_SEGMENT.test(issue.repoName) ||
+      !Number.isInteger(issue.githubId)
+    ) {
       return NextResponse.json(
         { error: "issue repoOwner, repoName, and githubId are required" },
         { status: 400 }
       );
     }
 
-    const token = process.env.NEXT_PUBLIC_SANITY_API_TOKEN;
+    const repo: RepositoryScope = {
+      repoOwner: issue.repoOwner,
+      repoName: issue.repoName,
+    };
+    const token = sanityWriteToken();
+    const reader = client.withConfig({
+      useCdn: false,
+      stega: false,
+      ...(token ? { token } : {}),
+    });
 
-    const [patterns, decisions] = await Promise.all([
-      client.fetch<HistoricalPattern[]>(
-        '*[_type == "triagePattern"] | order(learnedFrom desc)'
-      ),
-      token
-        ? client.fetch<HistoricalDecision[]>(
-            '*[_type == "triageDecision" && agentAccuracy != 0]{assignedPriority, resolution, agentAccuracy, issueRef->{title, labels}} | order(decidedAt desc)[0...100]'
-          )
-        : Promise.resolve([]),
+    const [storedPatterns, storedDecisions] = await Promise.all([
+      reader.fetch<HistoricalPattern[]>(REPOSITORY_PATTERNS_QUERY, repo),
+      reader.fetch<HistoricalDecision[]>(REPOSITORY_PRECEDENT_QUERY, repo),
     ]);
 
-    const matchingPatterns = findMatchingPatterns(issue, patterns);
-    const similarDecisions = findSimilarDecisions(issue, decisions);
+    const matchingPatterns = findMatchingPatterns(issue, patternsForRepository(storedPatterns, repo));
+    const precedent = selectPrecedent(issue, storedDecisions, repo);
 
-    const model = getModel(provider, apiKey);
+    let modelPriority: Priority | null = null;
+    let reasoning = "";
+    let suggestedResolution = "";
+    let confidence = 0;
 
-    const patternContext = matchingPatterns.length > 0
-      ? `\n\nHistorical patterns that match this issue:\n${matchingPatterns.map(
-          (p) => `- "${p.patternName}": avg urgency ${p.avgUrgency}/10, typical resolution: ${p.typicalResolution}, avg ${p.avgResolutionDays} days to resolve`
-        ).join("\n")}`
-      : "\n\nNo matching historical patterns found.";
+    if (shouldConsultModel(precedent)) {
+      if (!apiKey || !provider) {
+        return NextResponse.json(
+          {
+            error:
+              "An API key is required when this repository has no maintainer precedent for the issue.",
+          },
+          { status: 401 }
+        );
+      }
 
-    const decisionContext = similarDecisions.length > 0
-      ? `\n\nSimilar past decisions:\n${similarDecisions.slice(0, 5).map(
-          (d) => `- Priority: ${d.assignedPriority}, Resolution: ${d.resolution || "N/A"}`
-        ).join("\n")}`
-      : "\n\nNo similar past decisions found.";
+      const { instructions, prompt } = buildTriagePrompt(issue, matchingPatterns);
+      const { object } = await generateObject({
+        model: getModel(provider, apiKey),
+        output: "object",
+        schema: prioritizationSchema,
+        instructions,
+        prompt,
+      });
+      modelPriority = object.priority;
+      reasoning = object.reasoning;
+      suggestedResolution = object.suggestedResolution;
+      confidence = object.confidence;
+    }
 
-    const prompt = `You are a triage agent for an open source project. Analyze this GitHub issue and assign a priority based on historical patterns.
+    const resolved = resolveSuggestedPriority(modelPriority, precedent);
+    if (!resolved) {
+      return NextResponse.json(
+        { error: "No priority could be resolved for this issue" },
+        { status: 500 }
+      );
+    }
 
-Issue #${issue.githubId}: ${issue.title}
-Labels: ${issue.labels.join(", ") || "none"}
-Comments: ${issue.commentsCount}
-Body: ${(issue.body || "No description").slice(0, 2000)}
-${patternContext}
-${decisionContext}
-
-Assign a priority:
-- P0: Critical — security vulnerability, production crash, data loss
-- P1: High — major feature broken, many users affected
-- P2: Medium — important feature request, moderate impact
-- P3: Low — minor bug, enhancement, nice to have
-- P4: Backlog — question, documentation, low priority
-
-Base your decision on the historical patterns and similar past decisions. If patterns suggest a certain priority, align with that unless the issue clearly warrants different treatment.`;
-
-    const { object } = await generateObject({
-      model,
-      output: "object",
-      schema: prioritizationSchema,
-      instructions: "You are a triage agent that assigns priority to GitHub issues based on historical patterns.",
-      prompt,
-    });
+    if (resolved.source === "precedent") {
+      reasoning = `Maintainer precedent in ${repo.repoOwner}/${repo.repoName} sets similar issues to ${resolved.priority}.`;
+      suggestedResolution = precedent.find((decision) => decision.resolution)?.resolution || "";
+      confidence = 100;
+    }
 
     let issueId: string | undefined;
     let decisionId: string | undefined;
@@ -100,40 +116,40 @@ Base your decision on the historical patterns and similar past decisions. If pat
       }));
       issueId = await saveGitHubIssue(issue, token, {
         workflowStatus: "prioritized",
-        agentPriority: object.priority,
-        agentReasoning: object.reasoning,
+        agentPriority: resolved.priority,
+        agentReasoning: reasoning,
         matchedPatternIds,
       });
 
-      const decision = await client
-        .withConfig({ useCdn: false, token, stega: false })
-        .create({
-          _type: "triageDecision",
-          issueRef: { _type: "reference", _ref: issueId },
-          assignedPriority: object.priority,
-          resolution: object.suggestedResolution,
-          agentSuggestion: object.reasoning,
-          agentAccuracy: null,
-          matchedPatterns: matchedPatternIds,
-          decidedAt: new Date().toISOString(),
-        });
+      const decision = await reader.create({
+        _type: "triageDecision",
+        repoOwner: repo.repoOwner,
+        repoName: repo.repoName,
+        issueRef: { _type: "reference", _ref: issueId },
+        assignedPriority: resolved.priority,
+        ...(modelPriority ? { modelPriority } : {}),
+        agentSuggestion: reasoning,
+        agentAccuracy: null,
+        matchedPatterns: matchedPatternIds,
+        decidedAt: new Date().toISOString(),
+      });
       decisionId = decision._id;
     }
 
     return NextResponse.json({
       issueId,
       decisionId,
-      priority: object.priority,
-      reasoning: object.reasoning,
-      matchedPatterns: matchingPatterns.map((p) => p.patternName),
-      suggestedResolution: object.suggestedResolution,
-      confidence: object.confidence,
+      priority: resolved.priority,
+      prioritySource: resolved.source,
+      reasoning,
+      matchedPatterns: matchingPatterns.map((pattern) => pattern.patternName),
+      suggestedResolution,
+      confidence,
       historicalPatternsUsed: matchingPatterns.length,
-      similarDecisionsFound: similarDecisions.length,
+      similarDecisionsFound: precedent.length,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to prioritize issue";
+    const message = error instanceof Error ? error.message : "Failed to prioritize issue";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
