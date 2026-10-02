@@ -3,6 +3,7 @@ import { summarizeIssue, type IssueToSummarize } from "@/lib/ai/summarize";
 import type { Provider } from "@/lib/ai/providers";
 import { issueDocumentId } from "@/lib/issue-document-id";
 import { saveGitHubIssue } from "@/lib/sanity-issue";
+import { sanityWriteToken } from "@/lib/sanity-token";
 import { client } from "@/sanity/lib/client";
 
 export async function POST(request: NextRequest) {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       summaries.push(...batchSummaries);
     }
 
-    const token = process.env.NEXT_PUBLIC_SANITY_API_TOKEN;
+    const token = sanityWriteToken();
     const results = [];
 
     for (let i = 0; i < issues.length; i++) {

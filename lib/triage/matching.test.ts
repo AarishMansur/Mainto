@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { GitHubIssueDraft } from "@/lib/sanity-issue";
+import { ADVERSARIAL_PAIRS, GOLDEN, goldenIssue } from "@/lib/triage/golden";
+import type { Priority } from "@/lib/triage/precedent";
 import {
   findMatchingPatterns,
   findSimilarDecisions,
@@ -8,24 +9,8 @@ import {
   type HistoricalPattern,
 } from "@/lib/triage/matching";
 
-type Priority = "P0" | "P1" | "P2" | "P3" | "P4";
-
-interface GoldenCase {
-  title: string;
-  labels: string[];
-  expected: Priority;
-}
-
-function issue(title: string, labels: string[] = []): GitHubIssueDraft {
-  return {
-    githubId: 1,
-    repoOwner: "acme",
-    repoName: "app",
-    title,
-    body: null,
-    labels,
-    commentsCount: 0,
-  };
+function issue(title: string, labels: string[] = []) {
+  return goldenIssue(title, labels);
 }
 
 function decision(title: string, priority: Priority): HistoricalDecision {
@@ -36,20 +21,6 @@ function decision(title: string, priority: Priority): HistoricalDecision {
     issueRef: { title, labels: [] },
   };
 }
-
-const GOLDEN: GoldenCase[] = [
-  { title: "App crashes on login for all users", labels: ["bug"], expected: "P0" },
-  { title: "Typo in the login page heading", labels: ["docs"], expected: "P4" },
-  { title: "Data loss when saving large project files", labels: ["bug"], expected: "P0" },
-  { title: "Add dark mode toggle to the settings panel", labels: ["enhancement"], expected: "P3" },
-  { title: "Memory leak crashes the server under load", labels: ["bug"], expected: "P1" },
-  { title: "Improve wording of the memory usage tooltip", labels: ["docs"], expected: "P4" },
-];
-
-const ADVERSARIAL_PAIRS: [string, string][] = [
-  ["App crashes on login for all users", "Typo in the login page heading"],
-  ["Memory leak crashes the server under load", "Improve wording of the memory usage tooltip"],
-];
 
 describe("golden fixture integrity", () => {
   it("keeps adversarial pairs on opposite ends of the scale", () => {
